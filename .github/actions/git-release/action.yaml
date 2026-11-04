@@ -1,0 +1,42 @@
+name: Git release
+description: 'Commits the bumped version files (if any), tags the commit v<version> (optionally moving v<major>) and pushes atomically to the checked-out branch.'
+
+inputs:
+  version:
+    description: Released version
+    required: true
+  files:
+    description: Space-separated files to commit (the files output of version); empty tags HEAD without committing
+    required: false
+    default: ''
+  major_tag:
+    description: Also move v<major> to the release, for repos consumed as @v<major> (actions, workflows)
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        FILES: ${{ inputs.files }}
+        MAJOR_TAG: ${{ inputs.major_tag }}
+      run: |
+        tag="v${VERSION}"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        refs=()
+        if [[ -n "$FILES" ]]; then
+          git add -- $FILES
+          git commit -m "chore(release): ${tag}"
+          refs+=("HEAD:refs/heads/${GITHUB_REF_NAME}")
+        fi
+        git tag -a "$tag" -m "$tag"
+        refs+=("refs/tags/${tag}")
+        if [[ "$MAJOR_TAG" == "true" ]]; then
+          major="v${VERSION%%.*}"
+          git tag -f "$major"
+          refs+=("+refs/tags/${major}")
+        fi
+        git push --atomic origin "${refs[@]}"

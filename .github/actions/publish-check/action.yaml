@@ -1,0 +1,32 @@
+name: Publish check
+description: 'Decides whether this run publishes (push or dispatch on the default branch, unless disabled) and which ref to check out.'
+
+inputs:
+  disable_publish:
+    description: Never publish
+    required: false
+    default: 'false'
+
+outputs:
+  publish:
+    description: true when this run publishes
+    value: ${{ steps.check.outputs.publish }}
+  ref:
+    description: Ref to check out; the branch head when publishing (so a queued run bumps on top of the previous release), otherwise empty
+    value: ${{ steps.check.outputs.ref }}
+
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        DISABLE_PUBLISH: ${{ inputs.disable_publish }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        if [[ "$DISABLE_PUBLISH" != "true" && "$GITHUB_EVENT_NAME" != "pull_request" && "$GITHUB_REF_NAME" == "$DEFAULT_BRANCH" ]]; then
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "ref=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+        else
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+        fi

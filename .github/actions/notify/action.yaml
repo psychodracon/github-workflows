@@ -1,0 +1,35 @@
+name: Notify
+description: Sends a Pushover notification with the built version; does nothing without a Pushover token.
+
+inputs:
+  status:
+    description: Job status to report
+    required: true
+  version:
+    description: Version built in this run
+    required: false
+    default: ''
+  token:
+    description: Pushover API token
+    required: false
+    default: ''
+  user:
+    description: Pushover user key
+    required: false
+    default: ''
+  devices:
+    description: Pushover devices
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.token != ''
+      uses: psychodracon/github-action-pushover@v1
+      with:
+        job-status: ${{ inputs.status }}
+        pushover-api-token: ${{ inputs.token }}
+        pushover-user-key: ${{ inputs.user }}
+        version: ${{ inputs.version }}
+        device: ${{ inputs.devices }}

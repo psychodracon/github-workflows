@@ -1,0 +1,39 @@
+name: .NET CI
+description: Sets up .NET from global.json (otherwise the given SDK version), then restores, builds and tests in Release.
+
+inputs:
+  dotnet_version:
+    description: SDK version used when the repository has no global.json
+    required: false
+    default: 10.0.x
+
+runs:
+  using: composite
+  steps:
+    - name: Setup / Determine .NET SDK
+      id: sdk
+      shell: bash
+      env:
+        DOTNET_VERSION: ${{ inputs.dotnet_version }}
+      run: |
+        if [[ -f global.json ]]; then
+          echo "global_json_file=global.json" >> "$GITHUB_OUTPUT"
+        else
+          echo "dotnet_version=${DOTNET_VERSION}" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Setup / .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: ${{ steps.sdk.outputs.dotnet_version }}
+        global-json-file: ${{ steps.sdk.outputs.global_json_file }}
+
+    - name: Build / Restore, build and test
+      shell: bash
+      env:
+        DOTNET_NOLOGO: 'true'
+        DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+      run: |
+        dotnet restore
+        dotnet build -c Release --no-restore
+        dotnet test -c Release --no-build

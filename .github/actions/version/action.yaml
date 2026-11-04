@@ -1,0 +1,39 @@
+name: Version
+description: 'Works out the version to release and bumps the version files in the working tree without committing; git-release commits them. Releases the file version unchanged while its tag does not exist yet, otherwise bumps it.'
+
+inputs:
+  type:
+    description: 'npm (package.json in each path), msbuild (<Version> in each path) or tags (latest v* tag, no file)'
+    required: true
+  paths:
+    description: 'Space-separated directories (npm) or files (msbuild); ignored for tags'
+    required: false
+    default: .
+  bump:
+    description: patch, minor, major, or revision (four-part versions only)
+    required: false
+    default: patch
+  tag_prefix:
+    description: Prefix of the release tags
+    required: false
+    default: v
+
+outputs:
+  version:
+    description: Version to release
+    value: ${{ steps.version.outputs.version }}
+  files:
+    description: Space-separated files changed by the bump; empty when the version is released unchanged
+    value: ${{ steps.version.outputs.files }}
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        VERSION_TYPE: ${{ inputs.type }}
+        VERSION_PATHS: ${{ inputs.paths }}
+        VERSION_BUMP: ${{ inputs.bump }}
+        VERSION_TAG_PREFIX: ${{ inputs.tag_prefix }}
+      run: bash "${{ github.action_path }}/version.sh"

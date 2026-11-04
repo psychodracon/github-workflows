@@ -1,0 +1,30 @@
+name: Docker push
+description: Pushes the images built by docker-build to the GitHub container registry.
+
+inputs:
+  tags:
+    description: Newline-separated image tags (the tags output of docker-build)
+    required: true
+  registry_token:
+    description: Token with packages:write
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Image / Registry login
+      uses: docker/login-action@v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ inputs.registry_token }}
+
+    - name: Image / Push
+      shell: bash
+      env:
+        TAGS: ${{ inputs.tags }}
+      run: |
+        while IFS= read -r tag; do
+          if [[ -n "$tag" ]]; then docker push "$tag"; fi
+        done <<< "$TAGS"
