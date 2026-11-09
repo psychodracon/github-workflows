@@ -16,7 +16,7 @@ on:
     workflow_dispatch:
         inputs:
             version_bump:
-                description: Release bump; major also needs the internal @vN refs moved to the new major first
+                description: Release bump; a push releases a major after a breaking commit (type!, BREAKING CHANGE), otherwise a patch
                 type: choice
                 options:
                     - patch
@@ -24,23 +24,20 @@ on:
                     - major
                 default: patch
 
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
     build:
         name: Build
         runs-on: ubuntu-latest
         timeout-minutes: 30
         permissions:
-            contents: write
-        concurrency:
-            group: ci-${{ github.ref }}
-            cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+            contents: read
         steps:
             - name: Setup / Checkout repository
               uses: actions/checkout@v7
-
-            - name: Setup / Publish check
-              id: ci
-              uses: ./.github/actions/publish-check
 
             - name: Setup / Tools
               uses: jdx/mise-action@v5
@@ -49,19 +46,176 @@ jobs:
               run: actionlint
 
             - name: Build / Version tests
-              run: test/version.test.sh
+              run: node --test "test/actions/*.test.mjs"
 
-            - name: Repo / Next version
+    e2e-node:
+        name: E2E / Node
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+            packages: read
+        env:
+            FIXTURE: test/e2e/fixtures/node
+        steps:
+            - name: Setup / Checkout repository
+              uses: actions/checkout@v7
+
+            - name: Setup / Node
+              id: node
+              uses: ./.github/actions/setup-node
+              with:
+                  working_directory: ${{ env.FIXTURE }}
+
+            - name: Setup / Version
               id: version
-              if: steps.ci.outputs.publish == 'true'
+              uses: ./.github/actions/version
+              with:
+                  type: npm
+                  paths: ${{ env.FIXTURE }}
+                  tag_prefix: fixture-v
+
+            - name: Build / Node
+              uses: ./.github/actions/node-ci
+              with:
+                  working_directory: ${{ env.FIXTURE }}
+
+            - name: Image / Build
+              id: image
+              uses: ./.github/actions/docker-build
+              with:
+                  context: ${{ env.FIXTURE }}
+                  version: ${{ steps.version.outputs.version }}
+                  npmrc: ${{ steps.node.outputs.npmrc }}
+
+            - name: Test / Check
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+                  FILES: ${{ steps.version.outputs.files }}
+                  TAGS: ${{ steps.image.outputs.tags }}
+              run: test/e2e/check.sh
+
+    e2e-dotnet:
+        name: E2E / .NET (${{ matrix.os }})
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+        defaults:
+            run:
+                shell: bash
+        env:
+            FIXTURE: test/e2e/fixtures/dotnet
+        steps:
+            - name: Setup / Checkout repository
+              uses: actions/checkout@v7
+
+            - name: Setup / Version
+              id: version
+              uses: ./.github/actions/version
+              with:
+                  type: msbuild
+                  paths: ${{ env.FIXTURE }}/Directory.Build.props
+                  tag_prefix: fixture-v
+
+            - name: Build / .NET
+              uses: ./.github/actions/dotnet-ci
+              with:
+                  working_directory: ${{ env.FIXTURE }}
+
+            - name: Image / Build
+              id: image
+              if: runner.os == 'Linux'
+              uses: ./.github/actions/docker-build
+              with:
+                  context: ${{ env.FIXTURE }}
+                  version: ${{ steps.version.outputs.version }}
+
+            - name: Test / Check
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+                  FILES: ${{ steps.version.outputs.files }}
+                  TAGS: ${{ steps.image.outputs.tags }}
+                  IMAGE: ${{ runner.os == 'Linux' }}
+              run: test/e2e/check.sh
+
+    e2e-docker:
+        name: E2E / Docker
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        env:
+            FIXTURE: test/e2e/fixtures/docker
+        steps:
+            - name: Setup / Checkout repository
+              uses: actions/checkout@v7
+
+            - name: Setup / Version
+              id: version
               uses: ./.github/actions/version
               with:
                   type: tags
-                  bump: ${{ inputs.version_bump }}
+                  tag_prefix: fixture-v
 
-            - name: Repo / Tag version
-              if: steps.ci.outputs.publish == 'true'
+            - name: Image / Build
+              id: image
+              uses: ./.github/actions/docker-build
+              with:
+                  context: ${{ env.FIXTURE }}
+                  version: ${{ steps.version.outputs.version }}
+
+            - name: Test / Check
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+                  FILES: ${{ steps.version.outputs.files }}
+                  TAGS: ${{ steps.image.outputs.tags }}
+              run: test/e2e/check.sh
+
+    release:
+        name: Release
+        needs: [build, e2e-node, e2e-dotnet, e2e-docker]
+        if: >-
+            github.event_name != 'pull_request'
+            && github.ref_name == github.event.repository.default_branch
+            && !startsWith(github.event.head_commit.message, 'chore(release):')
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        steps:
+            - name: Setup / Checkout repository
+              uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.ref_name }}
+                  token: ${{ secrets.RELEASE_TOKEN }}
+
+            - name: Repo / Next version
+              id: version
+              uses: ./.github/actions/version
+              with:
+                  type: tags
+                  bump: ${{ inputs.version_bump || 'auto' }}
+
+            - name: Repo / Internal refs
+              id: refs
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  pattern='(psychodracon/github-workflows/[^@[:space:]]+)@v[0-9]+([^.0-9]|$)'
+                  mapfile -d '' -t files < <(git grep -lzE "$pattern" -- .github README.md || true)
+                  if ((${#files[@]} > 0)); then
+                    sed -i -E "s#${pattern}#\1@v${VERSION%%.*}\2#g" "${files[@]}"
+                  fi
+                  echo "files=$(git diff --name-only | xargs)" >> "$GITHUB_OUTPUT"
+
+            - name: Repo / Commit and tag version
               uses: ./.github/actions/git-release
               with:
                   version: ${{ steps.version.outputs.version }}
+                  files: ${{ steps.refs.outputs.files }}
                   major_tag: "true"

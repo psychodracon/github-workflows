@@ -2,6 +2,10 @@ name: Docker build
 description: Builds the repository's Dockerfile for linux/amd64. With a version it tags the image <version> and latest and loads it into the local Docker daemon for docker-push.
 
 inputs:
+  context:
+    description: Build context holding the Dockerfile
+    required: false
+    default: .
   version:
     description: Release version; empty builds without tags (pull requests)
     required: false
@@ -45,7 +49,7 @@ runs:
     - name: Image / Build
       uses: docker/build-push-action@v7
       with:
-        context: .
+        context: ${{ inputs.context }}
         platforms: linux/amd64
         load: ${{ inputs.version != '' }}
         tags: ${{ steps.meta.outputs.tags }}

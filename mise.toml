@@ -1,2 +1,3 @@
 [tools]
 actionlint = "1.7.12"
+node = "26.13.0"
