@@ -4,7 +4,8 @@ Reusable GitHub Actions workflows and composite actions that build, version and 
 repositories. A repository calls one workflow from a small `ci.yaml`; everything else (version bump,
 release commit and tag, image or package publishing) happens here.
 
-Use them through the moving `v1` tag, which CI moves on every release of this repository.
+Use them through a moving major tag (`v1` today), which CI moves on every release of that major. A
+new major gets its own tag (`v2`), and repositories on the older one keep working until they move.
 
 ## Use a workflow
 
@@ -75,28 +76,47 @@ Images are tagged `X.Y.Z` and `latest`.
 ## Actions
 
 Workflows are built from the actions in `.github/actions`, which repositories with their own release
-process (window-mover, jellyfin-plugin-where-to-watch, pokopia-dex) use directly:
+process also use directly:
 
 | Action | Purpose |
 | --- | --- |
 | `publish-check` | Decides whether this run publishes and which ref to check out |
-| `version` | Computes the next version (`npm`, `msbuild` with three or four parts, or `tags`) and bumps the files |
+| `version` | Computes the next version (`npm`, `msbuild` with three or four parts, or `tags`) and bumps the files. `bump: auto` releases a major after a breaking commit (`type!:` or `BREAKING CHANGE:`) since the last release, otherwise a patch |
 | `git-release` | Commits the bumped files, tags the release and pushes atomically |
 | `setup-node` | Installs Node.js from `.nvmrc`, caches npm downloads keyed on `package-lock.json` (which must exist) and points the `@psychodracon` scope at GitHub Packages |
 | `node-ci`, `dotnet-ci` | Restore, build, lint and test |
 | `docker-build`, `docker-push` | Build the image, then push it after the release is tagged |
-| `notify` | Sends a Pushover message via [github-action-pushover](https://github.com/psychodracon/github-action-pushover) |
+| `notify` | Sends a Pushover message with the run's result; does nothing without a Pushover token |
 
 ## Development
 
-Workflows are checked with `actionlint` (version pinned in `mise.toml`, install with `mise install`),
-and the version logic has tests:
+Workflows are checked with `actionlint`, and the `version` action (a Node.js action without
+dependencies) has tests. Both tools are pinned in `mise.toml` (install with `mise install`):
 
 ```sh
-test/version.test.sh
+actionlint
+node --test "test/actions/*.test.mjs"
 ```
 
-Changes reach the other repositories only when this repository's CI has released and moved `v1`.
+CI also runs the local actions end to end, the way `node-service`, `dotnet-service` and
+`docker-image` use them, against the small projects in `test/e2e/fixtures` (`node`, `dotnet`,
+`docker`): version, build, test and a Docker image that `test/e2e/check.sh` runs. The .NET job also
+runs on Windows, without the image. Nothing is tagged or pushed.
+
+Changes reach the other repositories only when this repository's CI has released them and moved the
+major tag those repositories use.
+
+### Releasing this repository
+
+Every merge to `main` is released once the build and every e2e job pass, using the `version` action's
+`bump: auto`:
+
+- Usually a patch that moves the current major tag (`v1.0.6` moves `v1`).
+- After a breaking commit (a `type!:` subject or a `BREAKING CHANGE:` footer), the next major. Its
+  release commit points every internal `psychodracon/github-workflows/...@v1` reference, and the
+  example above, at `@v2` and is tagged `v2.0.0` and `v2`; `v1` stays on its last commit.
+
+A manual run picks `patch`, `minor` or `major` instead.
 
 ## License
 

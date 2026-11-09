@@ -1,15 +1,13 @@
 # github-workflows
 
-Reusable workflows and composite actions for all repositories. What they do and how to call them is in
-[README.md](README.md).
+Reusable workflows and composite actions; usage and the release flow are in [README.md](README.md).
 
-- Every repository refers to this one as `psychodracon/github-workflows@v1`, and GitHub does not redirect
-  renamed actions, so do not rename the repository.
-- A change reaches the other repositories only after this repository's CI has released and moved `v1`.
-  Internal references use `@v1` too, except in this repository's own `ci.yaml`, which uses the local
-  `./.github/actions` of the commit under test.
-- Check workflows with `actionlint` (pinned in `mise.toml`) and run `test/version.test.sh` after touching
-  `.github/actions/version`.
-- Pushes made with `GITHUB_TOKEN` do not start workflows, so release commits need no `[skip ci]`.
-- `renovate.json` turns off the shared automerge for GitHub Actions updates: a merge here moves `v1` for
-  every repository, so those PRs are merged by hand.
+- Every caller names this repository in its `uses:` lines and GitHub does not redirect renamed
+  actions, so the name is fixed.
+- The internal `psychodracon/github-workflows/...@v<major>` references belong to the release, which
+  rewrites them. A change that breaks callers gets a `type!:` subject or a `BREAKING CHANGE:` footer,
+  which makes its release the next major.
+- The `version` action is plain Node.js (`runs: node24`, no dependencies, no build step) so it runs on
+  every runner OS. The other actions are composite with bash steps.
+- After changing an action, run `actionlint` and `node --test "test/actions/*.test.mjs"`, and mirror new
+  inputs or changed calls in the matching e2e job in `ci.yaml` (fixtures in `test/e2e/`).
