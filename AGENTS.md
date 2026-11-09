@@ -11,3 +11,5 @@ Reusable workflows and composite actions for all repositories. What they do and 
 - Check workflows with `actionlint` (pinned in `mise.toml`) and run `test/version.test.sh` after touching
   `.github/actions/version`.
 - Pushes made with `GITHUB_TOKEN` do not start workflows, so release commits need no `[skip ci]`.
+- `renovate.json` turns off the shared automerge for GitHub Actions updates: a merge here moves `v1` for
+  every repository, so those PRs are merged by hand.
