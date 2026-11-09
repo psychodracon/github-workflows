@@ -1,4 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>psychodracon/renovate-config"]
+  "extends": ["local>psychodracon/renovate-config"],
+  "packageRules": [
+    {
+      "description": "Review action updates here: merging one releases v1 to every repository at once.",
+      "matchManagers": ["github-actions"],
+      "automerge": false
+    }
+  ]
 }
