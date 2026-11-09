@@ -13,6 +13,7 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore: ["**.md", renovate.json, LICENSE]
   push:
     branches: [main]
     paths-ignore: [.github/**, "**.md", renovate.json, LICENSE]
@@ -42,6 +43,10 @@ Pull requests only build and test. A push or manual run on the default branch al
 bumps the patch version, a manual run picks the bump from the `version_bump` choice. The caller has to
 declare that choice and pass it on as above, otherwise every run bumps the patch. The `|| 'patch'`
 covers pushes, where `inputs` is empty.
+
+The `pull_request` filter leaves out `.github/**` so a PR that changes the workflow runs it. A new
+commit on a pull request cancels that PR's running build. A running build on the default branch is
+never cancelled, so a release is never stopped halfway; a newer run replaces one still waiting.
 
 ## Workflows
 

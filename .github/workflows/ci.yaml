@@ -2,6 +2,10 @@ name: CI
 
 on:
     pull_request:
+        paths-ignore:
+            - "**.md"
+            - renovate.json
+            - LICENSE
     push:
         branches:
             - main
@@ -24,11 +28,12 @@ jobs:
     build:
         name: Build
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: write
         concurrency:
-            group: ci-${{ github.repository }}-${{ github.ref }}
-        # Local ./ actions: use this commit's actions, not the previous @v1.
+            group: ci-${{ github.ref }}
+            cancel-in-progress: ${{ github.event_name == 'pull_request' }}
         steps:
             - name: Setup / Checkout repository
               uses: actions/checkout@v7

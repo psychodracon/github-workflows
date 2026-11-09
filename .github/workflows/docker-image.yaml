@@ -16,11 +16,13 @@ jobs:
     build:
         name: Build
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: write
             packages: write
         concurrency:
-            group: docker-image-${{ github.repository }}-${{ github.ref }}
+            group: docker-image-${{ github.ref }}
+            cancel-in-progress: ${{ github.event_name == 'pull_request' }}
         steps:
             - name: Setup / Publish check
               id: ci
