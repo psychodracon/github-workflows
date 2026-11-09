@@ -1,5 +1,5 @@
 name: Set up Node.js
-description: Installs Node.js from .nvmrc and writes a user .npmrc mapping the owner scope to GitHub Packages.
+description: Installs Node.js from .nvmrc, caches npm downloads keyed on package-lock.json, and writes a user .npmrc mapping the owner scope to GitHub Packages.
 
 inputs:
   working_directory:
@@ -23,6 +23,8 @@ runs:
       uses: actions/setup-node@v7
       with:
         node-version-file: ${{ inputs.working_directory }}/.nvmrc
+        cache: npm
+        cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
 
     - name: Setup / npm registry
       id: npmrc

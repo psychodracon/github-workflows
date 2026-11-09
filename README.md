@@ -82,7 +82,7 @@ process (window-mover, jellyfin-plugin-where-to-watch, pokopia-dex) use directly
 | `publish-check` | Decides whether this run publishes and which ref to check out |
 | `version` | Computes the next version (`npm`, `msbuild` with three or four parts, or `tags`) and bumps the files |
 | `git-release` | Commits the bumped files, tags the release and pushes atomically |
-| `setup-node` | Installs Node.js from `.nvmrc` and points the `@psychodracon` scope at GitHub Packages |
+| `setup-node` | Installs Node.js from `.nvmrc`, caches npm downloads keyed on `package-lock.json` (which must exist) and points the `@psychodracon` scope at GitHub Packages |
 | `node-ci`, `dotnet-ci` | Restore, build, lint and test |
 | `docker-build`, `docker-push` | Build the image, then push it after the release is tagged |
 | `notify` | Sends a Pushover message via [github-action-pushover](https://github.com/psychodracon/github-action-pushover) |
