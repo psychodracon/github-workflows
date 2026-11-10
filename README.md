@@ -1,13 +1,28 @@
 # github-workflows
 
-Reusable GitHub Actions workflows and composite actions that build, version and release all my
-repositories. A repository calls one workflow from a small `ci.yaml`; everything else (version bump,
-release commit and tag, image or package publishing) happens here.
+[![CI](https://github.com/psychodracon/github-workflows/actions/workflows/ci.yaml/badge.svg)](https://github.com/psychodracon/github-workflows/actions/workflows/ci.yaml)
+
+Reusable [GitHub Actions](https://docs.github.com/actions) workflows and composite actions that build,
+test, version and release every psychodracon repository. A repository calls one workflow from a small
+`ci.yaml`; everything else (version bump, release commit and tag, Docker image or npm package) happens
+here.
 
 Use them through a moving major tag (`v1` today), which CI moves on every release of that major. A
 new major gets its own tag (`v2`), and repositories on the older one keep working until they move.
 
-## Use a workflow
+## Requirements
+
+What the calling repository needs depends on the workflow (see [Workflows](#workflows)):
+
+- **Node.js workflows:** `package.json` with a `version`, a committed `package-lock.json`, and `.nvmrc`.
+  The `lint`, `build` and `test` scripts run when they exist.
+- **.NET:** a version in an MSBuild file, `Directory.Build.props` by default.
+- **Images:** a `Dockerfile`. A build that installs `@psychodracon` packages reads the token from the
+  BuildKit secret `npmrc` (`RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm ci`).
+
+## Installation
+
+Add `.github/workflows/ci.yaml`:
 
 ```yaml
 name: CI
@@ -49,7 +64,15 @@ The `pull_request` filter leaves out `.github/**` so a PR that changes the workf
 commit on a pull request cancels that PR's running build. A running build on the default branch is
 never cancelled, so a release is never stopped halfway; a newer run replaces one still waiting.
 
-## Workflows
+Release a minor or major version by hand with **Actions → CI → Run workflow**, or:
+
+```sh
+gh workflow run ci.yaml -f version_bump=minor
+```
+
+## Usage
+
+### Workflows
 
 | Workflow | For | Version comes from | Publishes |
 | --- | --- | --- | --- |
@@ -64,7 +87,7 @@ Common inputs: `version_bump` and `disable_publish` (build only).
 
 Images are tagged `X.Y.Z` and `latest`.
 
-## Release flow
+### Release flow
 
 1. Build and test.
 2. Work out the version: a version in a file that has no tag yet is released as it is, otherwise it is
@@ -73,7 +96,7 @@ Images are tagged `X.Y.Z` and `latest`.
 4. Commit the bumped files, tag `vX.Y.Z` and push both.
 5. Only then push the image or publish the package, so nothing is released that has no tag.
 
-## Actions
+### Actions
 
 Workflows are built from the actions in `.github/actions`, which repositories with their own release
 process also use directly:
@@ -106,7 +129,7 @@ runs on Windows, without the image. Nothing is tagged or pushed.
 Changes reach the other repositories only when this repository's CI has released them and moved the
 major tag those repositories use.
 
-### Releasing this repository
+## Releases
 
 Every merge to `main` is released once the build and every e2e job pass, using the `version` action's
 `bump: auto`:
