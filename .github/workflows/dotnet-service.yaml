@@ -59,6 +59,7 @@ jobs:
 
             # The image is pushed only once the version is committed and tagged.
             - name: Repo / Commit and tag version
+              id: release
               if: steps.ci.outputs.publish == 'true'
               uses: psychodracon/github-workflows/.github/actions/git-release@v1
               with:
@@ -66,7 +67,7 @@ jobs:
                   files: ${{ steps.version.outputs.files }}
 
             - name: Image / Push
-              if: steps.ci.outputs.publish == 'true'
+              if: steps.ci.outputs.publish == 'true' && steps.release.outputs.released == 'true'
               uses: psychodracon/github-workflows/.github/actions/docker-push@v1
               with:
                   tags: ${{ steps.image.outputs.tags }}
