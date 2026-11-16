@@ -32,7 +32,7 @@ on:
     paths-ignore: ["**.md", renovate.json, LICENSE]
   push:
     branches: [main]
-    paths-ignore: [.github/**, "**.md", renovate.json, LICENSE]
+    paths-ignore: [.github/**, "**.md", renovate.json, LICENSE, .nvmrc]
   workflow_dispatch:
     inputs:
       version_bump:
@@ -60,7 +60,8 @@ bumps the patch version, a manual run picks the bump from the `version_bump` cho
 declare that choice and pass it on as above, otherwise every run bumps the patch. The `|| 'patch'`
 covers pushes, where `inputs` is empty.
 
-The `pull_request` filter leaves out `.github/**` so a PR that changes the workflow runs it. A new
+The `pull_request` filter leaves out `.github/**` so a PR that changes the workflow runs it, and the
+`push` filter leaves out `.nvmrc`, which only sets CI's Node.js version. A new
 commit on a pull request cancels that PR's running build. A running build on the default branch is
 never cancelled, so a release is never stopped halfway; a newer run replaces one still waiting.
 
