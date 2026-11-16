@@ -32,7 +32,7 @@ on:
     paths-ignore: ["**.md", renovate.json, LICENSE]
   push:
     branches: [main]
-    paths-ignore: [.github/**, "**.md", renovate.json, LICENSE]
+    paths-ignore: [.github/**, "**.md", renovate.json, LICENSE, .nvmrc]
   workflow_dispatch:
     inputs:
       version_bump:
@@ -60,7 +60,8 @@ bumps the patch version, a manual run picks the bump from the `version_bump` cho
 declare that choice and pass it on as above, otherwise every run bumps the patch. The `|| 'patch'`
 covers pushes, where `inputs` is empty.
 
-The `pull_request` filter leaves out `.github/**` so a PR that changes the workflow runs it. A new
+The `pull_request` filter leaves out `.github/**` so a PR that changes the workflow runs it, and the
+`push` filter leaves out `.nvmrc`, which only sets CI's Node.js version. A new
 commit on a pull request cancels that PR's running build. A running build on the default branch is
 never cancelled, so a release is never stopped halfway; a newer run replaces one still waiting.
 
@@ -96,6 +97,10 @@ Images are tagged `X.Y.Z` and `latest`.
 4. Commit the bumped files, tag `vX.Y.Z` and push both.
 5. Only then push the image or publish the package, so nothing is released that has no tag.
 
+If the branch moved during the run, step 4 rebases onto commits that only touch the caller's
+`on.push` `paths-ignore`. Otherwise the newer run releases everything and this one pushes nothing
+(`released` is false), unless the new commits skip CI, which fails the run.
+
 ### Actions
 
 Workflows are built from the actions in `.github/actions`, which repositories with their own release
@@ -105,7 +110,7 @@ process also use directly:
 | --- | --- |
 | `publish-check` | Decides whether this run publishes and which ref to check out |
 | `version` | Computes the next version (`npm`, `msbuild` with three or four parts, or `tags`) and bumps the files. `bump: auto` releases a major after a breaking commit (`type!:` or `BREAKING CHANGE:`) since the last release, otherwise a patch |
-| `git-release` | Commits the bumped files, tags the release and pushes atomically |
+| `git-release` | Commits the bumped files, tags the release and pushes atomically; `released` is false when a newer run releases instead |
 | `setup-node` | Installs Node.js from `.nvmrc`, caches npm downloads keyed on `package-lock.json` (which must exist) and points the `@psychodracon` scope at GitHub Packages |
 | `node-ci`, `dotnet-ci` | Restore, build, lint and test |
 | `docker-build`, `docker-push` | Build the image, then push it after the release is tagged |

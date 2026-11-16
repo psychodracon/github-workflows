@@ -14,29 +14,10 @@ inputs:
     required: false
     default: 'false'
 
+outputs:
+  released:
+    description: false when the branch moved and the newer run releases instead
+
 runs:
-  using: composite
-  steps:
-    - shell: bash
-      env:
-        VERSION: ${{ inputs.version }}
-        FILES: ${{ inputs.files }}
-        MAJOR_TAG: ${{ inputs.major_tag }}
-      run: |
-        tag="v${VERSION}"
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        refs=()
-        if [[ -n "$FILES" ]]; then
-          git add -- $FILES
-          git commit -m "chore(release): ${tag}"
-          refs+=("HEAD:refs/heads/${GITHUB_REF_NAME}")
-        fi
-        git tag -a "$tag" -m "$tag"
-        refs+=("refs/tags/${tag}")
-        if [[ "$MAJOR_TAG" == "true" ]]; then
-          major="v${VERSION%%.*}"
-          git tag -f "$major"
-          refs+=("+refs/tags/${major}")
-        fi
-        git push --atomic origin "${refs[@]}"
+  using: node24
+  main: release.mjs

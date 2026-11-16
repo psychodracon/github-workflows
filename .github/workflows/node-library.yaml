@@ -50,6 +50,7 @@ jobs:
               uses: psychodracon/github-workflows/.github/actions/node-ci@v1
 
             - name: Repo / Commit and tag version
+              id: release
               if: steps.ci.outputs.publish == 'true'
               uses: psychodracon/github-workflows/.github/actions/git-release@v1
               with:
@@ -57,5 +58,5 @@ jobs:
                   files: ${{ steps.version.outputs.files }}
 
             - name: Publish / npm
-              if: steps.ci.outputs.publish == 'true'
+              if: steps.ci.outputs.publish == 'true' && steps.release.outputs.released == 'true'
               run: npm publish

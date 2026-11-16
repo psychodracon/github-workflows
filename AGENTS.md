@@ -17,8 +17,8 @@ End-to-end tests run only in CI: the `ci.yaml` jobs drive the actions against `t
 
 - Step names are `Area / Action` (`Setup / Checkout repository`, `Image / Push`).
 - Every job sets `timeout-minutes` and explicit `permissions`.
-- The `version` action stays plain Node.js (`runs: node24`, no dependencies, no build step) so it runs
-  on every runner OS; the other actions are composite with bash steps.
+- The `version` and `git-release` actions stay plain Node.js (`runs: node24`, no dependencies, no build
+  step) so they run the same on every runner OS; the other actions are composite with bash steps.
 - Internal references are `psychodracon/github-workflows/...@v<major>`. The release rewrites them, so
   leave them on the current major.
 - A new or changed action input is mirrored in the matching e2e job in `ci.yaml`.
