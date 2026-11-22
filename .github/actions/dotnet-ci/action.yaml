@@ -28,7 +28,7 @@ runs:
         fi
 
     - name: Setup / .NET
-      uses: actions/setup-dotnet@v6
+      uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
       with:
         dotnet-version: ${{ steps.sdk.outputs.dotnet_version }}
         global-json-file: ${{ steps.sdk.outputs.global_json_file }}
