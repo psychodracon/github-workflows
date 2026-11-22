@@ -37,7 +37,7 @@ jobs:
             contents: read
         steps:
             - name: Setup / Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Setup / Tools
               uses: jdx/mise-action@v5
@@ -59,7 +59,7 @@ jobs:
             FIXTURE: test/e2e/fixtures/node
         steps:
             - name: Setup / Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Setup / Node
               id: node
@@ -112,7 +112,7 @@ jobs:
             FIXTURE: test/e2e/fixtures/dotnet
         steps:
             - name: Setup / Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Setup / Version
               id: version
@@ -153,7 +153,7 @@ jobs:
             FIXTURE: test/e2e/fixtures/docker
         steps:
             - name: Setup / Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Setup / Version
               id: version
@@ -189,7 +189,7 @@ jobs:
             contents: read
         steps:
             - name: Setup / Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   ref: ${{ github.ref_name }}
                   token: ${{ secrets.RELEASE_TOKEN }}
